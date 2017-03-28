@@ -175,7 +175,7 @@ AnalyzePeriod <- function(s, YEAR)
 ###################################################################
 EstraiAnno <- function(ft)
 {
-  splitted <- strsplit(s, "-")
+  splitted <- strsplit(ft, "-")
   return(as.numeric(splitted[[1]][1]))
 }
 ###################################################################
@@ -198,49 +198,44 @@ mercato <- data.table(read_excel('prova.xlsx'))
 # Define server logic required to plot various variables against mpg
 shinyServer(function(input, output) {
   
-  if(input$Anno == '2017')
-  {
+ 
     for(i in 1:nrow(mercato))
     {
-      ft <- AnalyzePeriod(unlist(mercato[i,1]), input$Anno)
+      #print(i)
+      ft <- AnalyzePeriod(unlist(mercato[i,"Periodo"]), 2017)
       from <- ft$from
       to <- ft$to
+      #print(EstraiAnno(from))
+      
       if(EstraiAnno(from) == 2017 & EstraiAnno(to) == 2017)
       {
         df2 <- Redimensioner_pkop(df2, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
       }
+      else if(EstraiAnno(from) == 2018 & EstraiAnno(to) == 2018)
+      {
+        df8 <- Redimensioner_pkop(df8, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
+      }
       else
       {
-        next
+        break
       }
     }
+    output$pun7 <- renderText({print(paste("MAX =",max(df2$pun), "min =", min(df2$pun)))})
     output$plot17 <- renderPlot({
       plot(df2$pun, 
            data = df2,
            type = "l",
            main = 'PUN forward 2017')
     })
-  }
-  
-  else
-  {
-    for(i in 1:nrow(mercato))
-    {
-      ft <- AnalyzePeriod(unlist(mercato[i,1]), input$Anno)
-      from <- ft$from
-      to <- ft$to
-      if(EstraiAnno(from) == 2018 & EstraiAnno(to) == 2018)
-      {
-        df8 <- Redimensioner_pkop(df8, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
-      }
-    }
     output$plot18 <- renderPlot({
       plot(df8$pun, 
            data = df8,
            type = "l",
            main = 'PUN forward 2017')
     })
-  }
+  
+  
+
   
   
 })

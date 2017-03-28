@@ -11,10 +11,14 @@ shinyUI(pageWithSidebar(
   # Sidebar with controls to select the variable to plot against mpg
   # and to specify whether outliers should be included
   sidebarPanel(
-    selectInput("Anno", "Anno:",
-                list("2017" = "2017", 
-                     "2018" = "2018"))
+    actionButton("Action", label = "Esegui Quoting")
+    # selectInput("Anno", "Anno:",
+    #             list("2017" = "2017", 
+    #                  "2018" = "2018"))
     
   ),
-  mainPanel()
+  mainPanel(
+    #textOutput("pun7"),
+    plotOutput("plot17")
+  )
 ))
