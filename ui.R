@@ -1,24 +1,49 @@
 ###### ui.R file for shiny app
 
 library(shiny)
+library(shinyFiles)
+library(shinythemes)
+library(shinyjs)
 
-# Define UI for miles per gallon application
-shinyUI(pageWithSidebar(
+
+# Define UI for Quoting
+  #pageWithSidebar(
+  fluidPage(
+    
+    useShinyjs(),
+    
+  theme = shinytheme("superhero"),
   
   # Application title
-  headerPanel("Quoting"),
+  titlePanel("Quoting"),
   
   # Sidebar with controls to select the variable to plot against mpg
   # and to specify whether outliers should be included
+  
+  
   sidebarPanel(
     actionButton("Action", label = "Esegui Quoting")
-    # selectInput("Anno", "Anno:",
-    #             list("2017" = "2017", 
-    #                  "2018" = "2018"))
-    
   ),
+  
+  sidebarPanel(
+    textOutput("oldpun7"),
+    textOutput("oldpun8")
+  ),
+  
+  sidebarPanel(
+    textOutput("newpun7"),
+    textOutput("newpun8"),
+    textOutput("time")
+  ),
+  
+  
   mainPanel(
-    #textOutput("pun7"),
-    plotOutput("plot17")
+    plotOutput("plot17"),
+    plotOutput("plot18"),
+    textOutput("mess7"),
+    textOutput("mess8")
   )
-))
+  
+ 
+)
+
