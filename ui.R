@@ -22,7 +22,8 @@ library(shinyjs)
   
   
   sidebarPanel(
-    actionButton("Action", label = "Esegui Quoting")
+    actionButton("Action", label = "Esegui Quoting"),
+    h6("(ci mette circa 3 minuti)")
   ),
   
   sidebarPanel(

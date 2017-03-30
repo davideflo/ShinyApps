@@ -262,8 +262,8 @@ shinyServer(function(input, output) {
   })  
     
   hide(id = "old_stats", anim = TRUE, animType = "fade")  
-  path7 <- "longterm_pun.xlsx"   
-  path8 <- "pun_forward_2018.xlsx"  
+  path7 <- "C:/Users/utente/Documents/prova/longterm_pun.xlsx"   
+  path8 <- "C:/Users/utente/Documents/prova/pun_forward_2018.xlsx"  
   
   write.xlsx(df2, path7, row.names = FALSE)
   write.xlsx(df8, path8, row.names = FALSE)
