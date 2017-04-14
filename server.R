@@ -105,7 +105,11 @@ WeekRedimensioner <- function(ph, mh, from, to)
 ###################################################################
 AnalyzePeriod <- function(s)
 {
-  mesi <- c("Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre")
+  mesi17 <- c("Gennaio_17", "Febbraio_17", "Marzo_17", "Aprile_17", "Maggio_16", "Giugno_17", 
+              "Luglio_17", "Agosto_17", "Settembre_17", "Ottobre_17", "Novembre_17", "Dicembre_17")
+  mesi18 <- c("Gennaio_18", "Febbraio_18", "Marzo_18", "Aprile_18", "Maggio_18", "Giugno_18", 
+              "Luglio_18", "Agosto_18", "Settembre_18", "Ottobre_18", "Novembre_18", "Dicembre_18")
+  
   splitted <- strsplit(s, "-")
   YEAR <- 0
   
@@ -120,10 +124,17 @@ AnalyzePeriod <- function(s)
   }
   else if(length(splitted[[1]]) == 1)
   {
-    if(tolower(s) %in% tolower(mesi))
+    if(tolower(s) %in% tolower(mesi17))
     {
       YEAR <- 2017
-      mese <- ifelse(which(tolower(s) == tolower(mesi)) < 10, paste0('0',which(tolower(s) == tolower(mesi))), which(tolower(s) == tolower(mesi)))
+      mese <- ifelse(which(tolower(s) == tolower(mesi17)) < 10, paste0('0',which(tolower(s) == tolower(mesi17))), which(tolower(s) == tolower(mesi17)))
+      from <- paste0(YEAR, '-', mese, '-01')
+      to <- paste0(YEAR, '-', mese, '-', days_in_month(as.Date(from)))
+    }
+    else if(tolower(s) %in% tolower(mesi18))
+    {
+      YEAR <- 2018
+      mese <- ifelse(which(tolower(s) == tolower(mesi18)) < 10, paste0('0',which(tolower(s) == tolower(mesi18))), which(tolower(s) == tolower(mesi18)))
       from <- paste0(YEAR, '-', mese, '-01')
       to <- paste0(YEAR, '-', mese, '-', days_in_month(as.Date(from)))
     }
