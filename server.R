@@ -14,7 +14,15 @@ library(xlsx)
 Assembler2 <- function(real, ph)
 {
   rows <- which(unlist(!is.na(real[,13])))
-  re <- rep(0, nrow(real))
+  real <- real[rows,]
+  ### comparison step
+  last_date <- as.Date(ph$date[max(which(ph$real == 1))])
+  mld <- max(which(ph$real == 1))
+  errors <- unlist(real[(mld+1):nrow(real),13]) - ph$pun[(mld+1):nrow(real)]
+  r <- (mld+1):nrow(real)
+  #write.xlsx(data.frame(ph[r,1:(ncol(ph)-2)],Errors = errors), "C:/Users/utente/Documents/forward_pun_model_error/errors.xlsx", row.names = FALSE, append = TRUE)
+  ### assembling step
+  re <- rep(0, nrow(ph))
   
   for(i in 1:length(rows))
   {
@@ -40,31 +48,35 @@ Redimensioner_pkop <- function(ph, mh, mw, from, to, what)
   periodpk <- ph[rPK,]
   periodop <- ph[rOP,]
   
+  nPKr <- length(which(periodpk$real == 1))
+  nOPr <- length(which(periodop$real == 1))
+  
   if(what == "PK")  
   {
     opm <- (1/nOP)*((mh*M) - (mw*nPK))
     
-    pbpk <- ifelse(length(periodpk$pun[periodpk$real == 1]) > 0, (1/M)*sum(periodpk$pun[periodpk$real == 1]), 0)
-    pbop <- ifelse(length(periodop$pun[periodop$real == 1]) > 0, (1/M)*sum(periodop$pun[periodop$real == 1]), 0)
-    pihatpk <- (mw - pbpk)/mean(periodpk$pun[periodpk$real == 0])
-    pihatop <- (opm - pbop)/mean(periodop$pun[periodop$real == 0])
+    
+    pbpk <- ifelse(length(periodpk$pun[periodpk$real == 1]) > 0, (1/nPK)*sum(periodpk$pun[periodpk$real == 1]), 0)
+    pbop <- ifelse(length(periodop$pun[periodop$real == 1]) > 0, (1/nOP)*sum(periodop$pun[periodop$real == 1]), 0)
+    pihatpk <- (mw - pbpk)/((1/nPK)*sum(periodpk$pun[periodpk$real == 0]))
+    pihatop <- (opm - pbop)/((1/nOP)*sum(periodop$pun[periodop$real == 0]))
     for(i in 1:length(rPK))
     {
-      ph[rPK[i], "pun"] <- pihatpk * unlist(ph[rPK[i], "pun"])
+      if(ph[rPK[i], "real"] == 0) ph[rPK[i], "pun"] <- pihatpk * unlist(ph[rPK[i], "pun"])
     }
     for(i in 1:length(rOP))
     {
-      ph[rOP[i], "pun"] <- pihatop * unlist(ph[rOP[i], "pun"])
+      if(ph[rOP[i], "real"] == 0) ph[rOP[i], "pun"] <- pihatop * unlist(ph[rOP[i], "pun"])
     }
   }
   else
   {
     pkm <- (1/nPK)*((mh*M) - (mw*nOP))
     
-    pbpk <- ifelse(length(periodpk$pun[periodpk$real == 1]) > 0, (1/M)*sum(periodpk$pun[periodpk$real == 1]), 0)
-    pbop <- ifelse(length(periodop$pun[periodop$real == 1]) > 0, (1/M)*sum(periodop$pun[periodop$real == 1]), 0)
-    pihatpk <- (pkm - pbpk)/mean(periodpk$pun[periodpk$real == 0])
-    pihatop <- (mw - pbop)/mean(periodop$pun[periodop$real == 0])
+    pbpk <- ifelse(length(periodpk$pun[periodpk$real == 1]) > 0, (1/nPK)*sum(periodpk$pun[periodpk$real == 1]), 0)
+    pbop <- ifelse(length(periodop$pun[periodop$real == 1]) > 0, (1/nOP)*sum(periodop$pun[periodop$real == 1]), 0)
+    pihatpk <- (pkm - pbpk)/((1/nPK)*sum(periodpk$pun[periodpk$real == 0]))
+    pihatop <- (mw - pbop)/((1/nOP)*sum(periodop$pun[periodop$real == 0]))
     for(i in 1:length(rPK))
     {
       ph[rPK[i], "pun"] <- pihatpk * unlist(ph[rPK[i], "pun"])
@@ -204,19 +216,19 @@ EstraiAnno <- function(ft)
 ###################################################################
 
 #list_orep <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/longterm_pun.xlsx'))
-list_orep <- data.table(read_excel('longterm_pun.xlsx'))
-real <- read_excel("DB_Borse_Elettriche_PER MI_17_conMacro - Copy.xlsm", sheet = 2)
+list_orep <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/longterm_pun.xlsx'))
+real <- read_excel("C:/Users/utente/Documents/shinyapp/DB_Borse_Elettriche_PER MI_17_conMacro - Copy.xlsm", sheet = 2)
 df2 <- list_orep
 
 df2 <- Assembler2(real, df2)
 df2 <- df2[,-10]
 colnames(df2)[10] <- "real"
 
-df8 <- data.table(read_excel('pun_forward_2018.xlsx'))
+df8 <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/pun_forward_2018.xlsx'))
 
 
 
-mercato <- data.table(read_excel('prova.xlsx'))
+mercato <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/prova.xlsx'))
 
 # Define server logic required to plot various variables against mpg
 shinyServer(function(input, output) {
