@@ -213,6 +213,53 @@ EstraiAnno <- function(ft)
   return(as.numeric(splitted[[1]][1]))
 }
 ###################################################################
+TFileReader <- function()
+{
+  mesi <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+  ore7 <- read_excel("C:/Users/utente/Documents/shinyapp/sudd_ore_anno.xlsx", sheet = '2017')
+  ore8 <- read_excel("C:/Users/utente/Documents/shinyapp/sudd_ore_anno.xlsx", sheet = '2018')
+  
+  files<- list.files("C:/Users/utente/Documents/shinyapp")
+  fq <- grep('mercato', files, value=TRUE)
+  df <- read_excel(paste("C:/Users/utente/Documents/shinyapp/", fq), skip = 3)
+  df <- df[,1:7]
+  colnames(df) <- c("Period","Base.1","Peak.1","OffPeak.1","Base.2","Peak.2","OffPeak.2")
+  df[is.na(df)] <- 0
+  d_f <- data_frame()
+  for( i in 1:nrow(df))
+  {
+    if(df$Base.1[i] + df$Peak.1[i] > 0)
+    {
+      per <- as.character(df$Period[i])
+      if(per %in% mesi | per %in% c("Q3", "Q4")) per <- paste0(per, "_17")
+      d.f <- data.frame(period = per, BSL = df$Base.1[i], PK = df$Peak.1[i])
+      l = list(d_f, d.f)
+      d_f <- rbindlist(l)
+    }
+    else
+    {
+      next
+    }
+  }
+  for( i in 1:nrow(df))
+  {
+    if(df$Base.2[i] + df$Peak.2[i] > 0)
+    {
+      per <- as.character(df$Period[i])
+      if(per %in% mesi | per %in% c("Q1", "Q2","Q3", "Q4")) per <- paste0(per, "_18")
+      d.f <- data.frame(period = per, BSL = df$Base.1[i], PK = df$Peak.1[i])
+      l = list(d_f, d.f)
+      d_f <- rbindlist(l)
+    }
+    else
+    {
+      next
+    }
+  }
+  ##### compute the missing values #####
+  
+  
+}
 ###################################################################
 
 #list_orep <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/longterm_pun.xlsx'))
@@ -233,66 +280,139 @@ mercato <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/prova.xlsx'
 # Define server logic required to plot various variables against mpg
 shinyServer(function(input, output) {
   
-  observeEvent(input$Action,{
-    start <- proc.time()
-    output$oldpun7 <- renderText({print(paste("BASELOAD 2017 attuale =",round(m_old,2)))})
-    output$oldpun8 <- renderText({print(paste("BASELOAD 2018 attuale =",round(m_old8,2)))})
-    withProgress(message = "Sto elaborando...", {
-    m_old <- mean(df2$pun)
-    m_old8 <- mean(df8$pun)
-    for(i in 1:nrow(mercato))
-    {
-      #print(i)
-      ft <- AnalyzePeriod(unlist(mercato[i,"Periodo"]))
-      from <- ft$from
-      to <- ft$to
-      #print(EstraiAnno(from))
+  if(input$select == 1)
+  {
+    observeEvent(input$Action,{
+      start <- proc.time()
+      output$oldpun7 <- renderText({print(paste("BASELOAD 2017 attuale =",round(m_old,2)))})
+      output$oldpun8 <- renderText({print(paste("BASELOAD 2018 attuale =",round(m_old8,2)))})
+      withProgress(message = "Sto elaborando...", {
+        m_old <- mean(df2$pun)
+        m_old8 <- mean(df8$pun)
+        for(i in 1:nrow(mercato))
+        {
+          #print(i)
+          ft <- AnalyzePeriod(unlist(mercato[i,"Periodo"]))
+          from <- ft$from
+          to <- ft$to
+          #print(EstraiAnno(from))
+          
+          if(EstraiAnno(from) == 2017 & EstraiAnno(to) == 2017)
+          {
+            df2 <- Redimensioner_pkop(df2, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
+          }
+          else if(EstraiAnno(from) == 2018 & EstraiAnno(to) == 2018)
+          {
+            df8 <- Redimensioner_pkop(df8, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
+          }
+          else
+          {
+            break
+          }
+        }
+        
+        output$time <- renderText({paste("Tempo: ",proc.time()[1] - start[1])})  
+        
+        output$newpun7 <- renderText({print(paste("BASELOAD 2017 aggiornato =",round(mean(df2$pun),2)))})
+        output$plot17 <- renderPlot({
+          plot(df2$pun, 
+               col = 'blue',
+               type = "l",
+               ylab = "pun 2017",
+               main = 'PUN forward 2017')
+        })
+        
+        output$newpun8 <- renderText({print(paste("BASELOAD 2018 aggiornato =",round(mean(df8$pun),2)))})
+        output$plot18 <- renderPlot({
+          plot(df8$pun, 
+               col = "red",
+               type = "l",
+               ylab = "pun 2018",
+               main = 'PUN forward 2018')
+        })
+        
+      })  
       
-      if(EstraiAnno(from) == 2017 & EstraiAnno(to) == 2017)
-      {
-        df2 <- Redimensioner_pkop(df2, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
-      }
-      else if(EstraiAnno(from) == 2018 & EstraiAnno(to) == 2018)
-      {
-        df8 <- Redimensioner_pkop(df8, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
-      }
-      else
-      {
-        break
-      }
-    }
-    
-    output$time <- renderText({paste("Tempo: ",proc.time()[1] - start[1])})  
-    
-    output$newpun7 <- renderText({print(paste("BASELOAD 2017 aggiornato =",round(mean(df2$pun),2)))})
-    output$plot17 <- renderPlot({
-      plot(df2$pun, 
-           col = 'blue',
-           type = "l",
-           ylab = "pun 2017",
-           main = 'PUN forward 2017')
+      hide(id = "old_stats", anim = TRUE, animType = "fade")  
+      path7 <- "C:/Users/utente/Documents/prova/longterm_pun.xlsx"   
+      path8 <- "C:/Users/utente/Documents/prova/pun_forward_2018.xlsx"  
+      
+      write.xlsx(df2, path7, row.names = FALSE)
+      write.xlsx(df8, path8, row.names = FALSE)
+      
+      output$mess7 <- renderText({print(paste("PUN forward 2017 salvato in", path7))})
+      output$mess8 <- renderText({print(paste("PUN forward 2018 salvato in", path8))})
+      
+      output$quotingText <- renderText({print("Fatto quoting COMPLETO")})
     })
     
-    output$newpun8 <- renderText({print(paste("BASELOAD 2018 aggiornato =",round(mean(df8$pun),2)))})
-    output$plot18 <- renderPlot({
-      plot(df8$pun, 
-           col = "red",
-           type = "l",
-           ylab = "pun 2018",
-           main = 'PUN forward 2018')
+  }
+  else
+  {
+    observeEvent(input$Action,{
+      start <- proc.time()
+      output$oldpun7 <- renderText({print(paste("BASELOAD 2017 attuale =",round(m_old,2)))})
+      output$oldpun8 <- renderText({print(paste("BASELOAD 2018 attuale =",round(m_old8,2)))})
+      withProgress(message = "Sto elaborando...", {
+        m_old <- mean(df2$pun)
+        m_old8 <- mean(df8$pun)
+        for(i in 1:nrow(mercato))
+        {
+          #print(i)
+          ft <- ####AnalyzePeriod(unlist(mercato[i,"Periodo"]))
+          from <- ft$from
+          to <- ft$to
+          #print(EstraiAnno(from))
+          
+          if(EstraiAnno(from) == 2017 & EstraiAnno(to) == 2017)
+          {
+            df2 <- Redimensioner_pkop(df2, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
+          }
+          else if(EstraiAnno(from) == 2018 & EstraiAnno(to) == 2018)
+          {
+            df8 <- Redimensioner_pkop(df8, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
+          }
+          else
+          {
+            break
+          }
+        }
+        
+        output$time <- renderText({paste("Tempo: ",proc.time()[1] - start[1])})  
+        
+        output$newpun7 <- renderText({print(paste("BASELOAD 2017 aggiornato =",round(mean(df2$pun),2)))})
+        output$plot17 <- renderPlot({
+          plot(df2$pun, 
+               col = 'blue',
+               type = "l",
+               ylab = "pun 2017",
+               main = 'PUN forward 2017')
+        })
+        
+        output$newpun8 <- renderText({print(paste("BASELOAD 2018 aggiornato =",round(mean(df8$pun),2)))})
+        output$plot18 <- renderPlot({
+          plot(df8$pun, 
+               col = "red",
+               type = "l",
+               ylab = "pun 2018",
+               main = 'PUN forward 2018')
+        })
+        
+      })  
+      
+      hide(id = "old_stats", anim = TRUE, animType = "fade")  
+      path7 <- "C:/Users/utente/Documents/prova/longterm_pun.xlsx"   
+      path8 <- "C:/Users/utente/Documents/prova/pun_forward_2018.xlsx"  
+      
+      write.xlsx(df2, path7, row.names = FALSE)
+      write.xlsx(df8, path8, row.names = FALSE)
+      
+      output$mess7 <- renderText({print(paste("PUN forward 2017 salvato in", path7))})
+      output$mess8 <- renderText({print(paste("PUN forward 2018 salvato in", path8))})
+      
+      output$quotingText <- renderText({print("Fatto quoting di TECLA")})
     })
-  
-  })  
     
-  hide(id = "old_stats", anim = TRUE, animType = "fade")  
-  path7 <- "C:/Users/utente/Documents/prova/longterm_pun.xlsx"   
-  path8 <- "C:/Users/utente/Documents/prova/pun_forward_2018.xlsx"  
-  
-  write.xlsx(df2, path7, row.names = FALSE)
-  write.xlsx(df8, path8, row.names = FALSE)
-  
-  output$mess7 <- renderText({print(paste("PUN forward 2017 salvato in", path7))})
-  output$mess8 <- renderText({print(paste("PUN forward 2018 salvato in", path8))})
-  })
+  }
   
 })

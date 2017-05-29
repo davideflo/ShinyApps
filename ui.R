@@ -22,6 +22,8 @@ library(shinyjs)
   
   
   sidebarPanel(
+    selectInput("select", label = h3("Seleziona tipo di quoting"), 
+                choices = list("quoting completo" = 1, "quoting Tecla" = 2)),
     actionButton("Action", label = "Esegui Quoting"),
     h6("(ci mette circa 3 minuti)")
   ),
@@ -42,7 +44,8 @@ library(shinyjs)
     plotOutput("plot17"),
     plotOutput("plot18"),
     textOutput("mess7"),
-    textOutput("mess8")
+    textOutput("mess8"),
+    textOutput("quotingText")
   )
   
  
