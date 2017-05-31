@@ -229,7 +229,7 @@ TFileReader <- function()
   
   files<- list.files("C:/Users/utente/Documents/shinyapp")
   fq <- grep('mercato', files, value=TRUE)
-  df <- read_excel(paste0("C:/Users/utente/Documents/shinyapp/", fq), skip = 3)
+  df <- read_excel(paste0("C:/Users/utente/Documents/shinyapp/", fq), skip = 4)
   df <- df[,1:7]
   colnames(df) <- c("Period","Base.1","Peak.1","OffPeak.1","Base.2","Peak.2","OffPeak.2")
   df[is.na(df)] <- 0
@@ -284,21 +284,37 @@ TFileReader <- function()
   Q4nm <- c("10","11","12")
   
   DF <- data_frame()
+  DF <- bind_rows(DF, data.frame(inizio = '2016-01-01', fine = '2016-01-31', BSL = 0, PK = 0))
   for(i in 1:nrow(d_f))
   {
-    if(!(strsplit(d_f$period[i], "_")[[1]] %in% mesi) & !(strsplit(d_f$period[i], "_")[[1]] %in% c("Q1","Q2","Q3","Q4")))
+    if(!(strsplit(d_f$period[i], "_")[[1]][1] %in% mesi) & !(strsplit(d_f$period[i], "_")[[1]][1] %in% c("Q1","Q2","Q3","Q4")) & strsplit(d_f$period[i], "_")[[1]][1] != "Y")
     {
+      split1 <- gsub(" ", "", strsplit(d_f$period[i], "-")[[1]][1], fixed = TRUE)
+      split2 <- gsub(" ", "", strsplit(d_f$period[i], "-")[[1]][2], fixed = TRUE)
       
+      ss1 <- strsplit(split1, "/")[[1]]
+      ss2 <- strsplit(split2, "/")[[1]]
+      
+      start <- paste0(ss1[3], "-", ss1[2], "-", ss1[1])
+      end <- paste0(ss2[3], "-", ss2[2], "-", ss2[1])
+      
+      d.f <- data.frame(inizio = start, fine = end, BSL = d_f$BSL[i], PK = d_f$PK[i])
+      
+      if(!(start %in% DF$inizio))
+      {
+        l <- list(DF, d.f)
+        DF <- rbindlist(l)
+      }
     }
     
-    else if(strsplit(d_f$period[i], "_")[[1]] %in% mesi)
+    else if(strsplit(d_f$period[i], "_")[[1]][1] %in% mesi)
     {
-        mm <- strsplit(d_f$period[i], "_")[[1]]
-        y <- strsplit(d_f$period[i], "_")[[2]]
+        mm <- strsplit(d_f$period[i], "_")[[1]][1]
+        y <- strsplit(d_f$period[i], "_")[[1]][2]
         m <- lubridate::month(Sys.Date())
-        Q <- get(GetQ(mm))
-        Qn <- get(paste0(GetQ(mm), "n"))
-        Qnm <- get(paste0(GetQ(mm), "nm"))
+        Q <- get(GetQ(which(mesi == mm)))
+        Qn <- get(paste0(GetQ(which(mesi == mm)), "n"))
+        Qnm <- get(paste0(GetQ(which(mesi == mm)), "nm"))
         
         if(y == "17")
         {
@@ -311,11 +327,9 @@ TFileReader <- function()
         
         if(m %in% Qn)
         {
-          start <- paste0("20",y,"-",Qnm[which(Qn == m)], "-01")
-          end <- paste0("20",y,"-",Qnm[which(Qn == m)], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
-          d.f <- data.frame(inizio = start, fine = end, BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
           if(m == Qn[1])
           {
+            
             if(paste0(Q[2],"_",y) %in% d_f$period & paste0(Q[3],"_",y) %in% d_f$period)
             {
               ind2 <- which(d_f$period == paste0(Q[2],"_",y))
@@ -326,10 +340,18 @@ TFileReader <- function()
               end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
               d.f2 <- data.frame(inizio = start2, fine = end2, BSL = d_f$BSL[ind2], PK = d_f$PK[ind2], stringsAsFactors = FALSE) 
               d.f3 <- data.frame(inizio = start3, fine = end3, BSL = d_f$BSL[ind3], PK = d_f$PK[ind3], stringsAsFactors = FALSE) 
-              d.f <- rbind(d.f, d.f2)
-              d.f <- rbind(d.f, d.f3)
-              l <- list(DF, d.f)
-              DF <- rbindlist(l)
+              #d.f <- rbind(d.f, d.f2)
+              if(!(start2 %in% DF$inizio))
+              {
+                l <- list(DF, d.f2)
+                DF <- rbindlist(l)
+              }
+              if(!(start3 %in% DF$inizio))
+              {
+                l <- list(DF, d.f3)
+                DF <- rbindlist(l)
+              }
+              
             }
             else if(paste0(Q[2],"_",y) %in% d_f$period & !(paste0(Q[3],"_",y) %in% d_f$period))
             {
@@ -337,31 +359,44 @@ TFileReader <- function()
               start2 <- paste0("20",y,"-",Qnm[2], "-01")
               end2 <- paste0("20",y,"-",Qnm[2], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
               d.f2 <- data.frame(inizio = start2, fine = end2, BSL = d_f$BSL[ind2], PK = d_f$PK[ind2], stringsAsFactors = FALSE) 
-              bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(m), "_",y))]
-              pQ <- d_f$PK[which(d_f$period == paste0(GetQ(m), "_",y))]
+              bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
+              pQ <- d_f$PK[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
               missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]] - d_f$BSL[ind2]*ore7$BSL[Qn[2]])/ore7$BSL[Qn[3]]
-              missing_p <- (bQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]] - d_f$PK[ind2]*ore7$PK[Qn[2]])/ore7$PK[Qn[3]]
+              missing_p <- (pQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]] - d_f$PK[ind2]*ore7$PK[Qn[2]])/ore7$PK[Qn[3]]
               start3 <- paste0("20",y,"-",Qnm[3], "-01")
               end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
               d.f3 <- data.frame(inizio = start3, fine = end3, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE) 
-              d.f <- rbind(d.f, d.f2)
-              d.f <- rbind(d.f, d.f3)
-              l <- list(DF, d.f)
-              DF <- rbindlist(l)
+              
+              #d.f <- rbind(d.f, d.f3)
+              if(!(start2 %in% DF$inizio))
+              {
+                l <- list(DF, d.f2)
+                DF <- rbindlist(l)
+              }
+              if(!(start3 %in% DF$inizio))
+              {
+                l <- list(DF, d.f3)
+                DF <- rbindlist(l)
+              }
+              
             }
             else
             {
-              bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(m), "_",y))]
-              pQ <- d_f$PK[which(d_f$period == paste0(GetQ(m), "_",y))]
-              missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]])/ore7$BSL[Qn[2]:Qn[3]]
-              missing_p <- (bQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]])/ore7$PK[Qn[2]:Qn[3]]
+              bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
+              pQ <- d_f$PK[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
+              missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]])/sum(ore7$BSL[Qn[2]:Qn[3]])
+              missing_p <- (pQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]])/sum(ore7$PK[Qn[2]:Qn[3]])
               start3 <- paste0("20",y,"-",Qnm[2], "-01")
               s <- paste0("20",y,"-",Qnm[3], "-01")
               end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(s, origin = "1899-12-30")))
               d.f3 <- data.frame(inizio = start3, fine = end3, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE)
-              d.f <- rbind(d.f, d.f3)
-              l <- list(DF, d.f)
-              DF <- rbindlist(l)
+              #d.f <- rbind(d.f, d.f3)
+              if(!(start3 %in% DF$inizio))
+              {
+                l <- list(DF, d.f3)
+                DF <- rbindlist(l)
+              }
+              
             }
             
           }
@@ -373,9 +408,12 @@ TFileReader <- function()
               start3 <- paste0("20",y,"-",Qnm[3], "-01")
               end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
               d.f3 <- data.frame(inizio = start3, fine = end3, BSL = d_f$BSL[ind3], PK = d_f$PK[ind3], stringsAsFactors = FALSE) 
-              d.f <- rbind(d.f, d.f3)
-              l <- list(DF, d.f)
-              DF <- rbindlist(l)
+              if(!(start3 %in% DF$inizio))
+              {
+                l <- list(DF, d.f3)
+                DF <- rbindlist(l)
+              }
+              
             }
             else
             {
@@ -386,17 +424,37 @@ TFileReader <- function()
               start3 <- paste0("20",y,"-",Qnm[3], "-01")
               end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start3, origin = "1899-12-30")))
               d.f3 <- data.frame(inizio = start3, fine = end3, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE)
-              d.f <- rbind(d.f, d.f3)
-              l <- list(DF, d.f)
-              DF <- rbindlist(l)
+              if(!(start3 %in% DF$inizio))
+              {
+                l <- list(DF, d.f3)
+                DF <- rbindlist(l)
+              }
+              
             }
-          } #### end if loop m \in Qn
+          }
+          else
+            {
+              start3 <- paste0("20",y,"-",Qnm[3], "-01")
+              end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start3, origin = "1899-12-30")))
+              d.f3 <- data.frame(inizio = start3, fine = end3, BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
+              if(!(start3 %in% DF$inizio))
+              {
+                l <- list(DF, d.f3)
+                DF <- rbindlist(l)
+              }
+              
+            }#### end if loop m \in Qn
         }
       else if(m < Qn[1])
       {
         start <- paste0("20",y,"-",Qnm[1], "-01")
         end <- paste0("20",y,"-",Qnm[1], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
         d.f <- data.frame(inizio = start, fine = end, BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
+        if(!(start %in% DF$inizio))
+        {
+          l <- list(DF, d.f)
+          DF <- rbindlist(l)
+        }
         
         if(paste0(Q[2],"_",y) %in% d_f$period & paste0(Q[3],"_",y) %in% d_f$period)
         {
@@ -408,49 +466,67 @@ TFileReader <- function()
           end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
           d.f2 <- data.frame(inizio = start2, fine = end2, BSL = d_f$BSL[ind2], PK = d_f$PK[ind2], stringsAsFactors = FALSE) 
           d.f3 <- data.frame(inizio = start3, fine = end3, BSL = d_f$BSL[ind3], PK = d_f$PK[ind3], stringsAsFactors = FALSE) 
-          d.f <- rbind(d.f, d.f2)
-          d.f <- rbind(d.f, d.f3)
-          l <- list(DF, d.f)
-          DF <- rbindlist(l)
+          if(!(start2 %in% DF$inizio))
+          {
+            l <- list(DF, d.f2)
+            DF <- rbindlist(l)
+          }
+          if(!(start3 %in% DF$inizio))
+          {
+            l <- list(DF, d.f3)
+            DF <- rbindlist(l)
+          }
+          #d.f <- rbind(d.f, d.f2)
+          
         }
-        else if(paste0(Q[2],"_",y) %in% d_f$period & paste0(Q[3],"_",y) %in% d_f$period)
+        else if(paste0(Q[2],"_",y) %in% d_f$period & !(paste0(Q[3],"_",y) %in% d_f$period))
         {
           ind2 <- which(d_f$period == paste0(Q[2],"_",y))
           start2 <- paste0("20",y,"-",Qnm[2], "-01")
           end2 <- paste0("20",y,"-",Qnm[2], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
           d.f2 <- data.frame(inizio = start2, fine = end2, BSL = d_f$BSL[ind2], PK = d_f$PK[ind2], stringsAsFactors = FALSE) 
-          bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(m), "_",y))]
-          pQ <- d_f$PK[which(d_f$period == paste0(GetQ(m), "_",y))]
+          bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(Qn[1]), "_",y))]
+          pQ <- d_f$PK[which(d_f$period == paste0(GetQ(Qn[1]), "_",y))]
           missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]] - d_f$BSL[ind2]*ore7$BSL[Qn[2]])/ore7$BSL[Qn[3]]
-          missing_p <- (bQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]] - d_f$PK[ind2]*ore7$PK[Qn[2]])/ore7$PK[Qn[3]]
+          missing_p <- (pQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]] - d_f$PK[ind2]*ore7$PK[Qn[2]])/ore7$PK[Qn[3]]
           start3 <- paste0("20",y,"-",Qnm[3], "-01")
           end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
           d.f3 <- data.frame(inizio = start3, fine = end3, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE) 
-          d.f <- rbind(d.f, d.f2)
-          d.f <- rbind(d.f, d.f3)
-          l <- list(DF, d.f)
-          DF <- rbindlist(l)
+          #d.f <- rbind(d.f, d.f2)
+          if(!(start2 %in% DF$inizio))
+          {
+            l <- list(DF, d.f2)
+            DF <- rbindlist(l)
+          }
+          if(!(start3 %in% DF$inizio))
+          {
+            l <- list(DF, d.f3)
+            DF <- rbindlist(l)
+          }
         }
         else
         {
-          bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(m), "_",y))]
-          pQ <- d_f$PK[which(d_f$period == paste0(GetQ(m), "_",y))]
-          missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]])/ore7$BSL[Qn[2]:Qn[3]]
-          missing_p <- (bQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]])/ore7$PK[Qn[2]:Qn[3]]
+          bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(Qn[1]), "_",y))]
+          pQ <- d_f$PK[which(d_f$period == paste0(GetQ(Qn[1]), "_",y))]
+          missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]])/sum(ore7$BSL[Qn[2]:Qn[3]])
+          missing_p <- (pQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]])/sum(ore7$PK[Qn[2]:Qn[3]])
           start3 <- paste0("20",y,"-",Qnm[2], "-01")
           s <- paste0("20",y,"-",Qnm[3], "-01")
           end3 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(s, origin = "1899-12-30")))
           d.f3 <- data.frame(inizio = start3, fine = end3, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE)
-          d.f <- rbind(d.f, d.f3)
-          l <- list(DF, d.f)
-          DF <- rbindlist(l)
+          #d.f <- rbind(d.f, d.f3)
+          if(!(start3 %in% DF$inizio))
+          {
+            l <- list(DF, d.f3)
+            DF <- rbindlist(l)
+          }
         }
       }
     }
-    else if(strsplit(d_f$period[i], "_")[[1]] %in% c("Q1","Q2","Q3","Q4"))
+    else if(strsplit(d_f$period[i], "_")[[1]][1] %in% c("Q1","Q2","Q3","Q4"))
     {
-      q <- strsplit(d_f$period[i], "_")[[1]]
-      y <- strsplit(d_f$period[i], "_")[[2]]
+      q <- strsplit(d_f$period[i], "_")[[1]][1]
+      y <- strsplit(d_f$period[i], "_")[[1]][2]
       
       if(y == "17" & usageQ7[which(c("Q1","Q2","Q3","Q4") == q)] > 0)
       {
@@ -463,17 +539,21 @@ TFileReader <- function()
       else
       {
         Q <- get(q)
-        Qnm <- get(paste(q,"nm"))
+        Qnm <- get(paste0(q,"nm"))
         start <- paste0("20",y,"-",Qnm[1], "-01")
         s <- paste0("20",y,"-",Qnm[3], "-01")
-        end <- paste0("20",y,"-",Qnm[3], lubridate::days_in_month(as.Date(s, origin = "1899-12-30")))
+        end <- paste0("20",y,"-",Qnm[3],'-', lubridate::days_in_month(as.Date(s, origin = "1899-12-30")))
         d.f <- data.frame(inizio = start, fine = end, BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
-        l <- list(DF, d.f)
-        DF <- rbindlist(l)
+        if(!(start %in% DF$inizio))
+        {
+          l <- list(DF, d.f)
+          DF <- rbindlist(l)
+        }
+        
       }
       
     }
-    else if(strsplit(d_f$period[i], "_")[[1]] == Y)
+    else if(strsplit(d_f$period[i], "_")[[1]][1] == 'Y')
     {
       if(sum(usageQ8) > 0)
       {
@@ -487,8 +567,11 @@ TFileReader <- function()
         missing_b <- (d_f$BSL[i]*sum(ore7$BSL) - sum(d_f$BSL[which(d_f$period %in% Qp)])*ore7$BSL[1:(Qn[1]-1)])/ore7$BSL[Qn[1]:12]
         missing_p <- (d_f$PK[i]*sum(ore7$PK) - sum(d_f$PK[which(d_f$period %in% Qp)])*ore7$PK[1:(Qn[1]-1)])/ore7$PK[Qn[1]:12]
         d.f <- data.frame(inizio = start, fine = end, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE)
-        l <- list(DF, d.f)
-        DF <- rbindlist(l)
+        if(!(start %in% DF$inizio))
+        {
+          l <- list(DF, d.f)
+          DF <- rbindlist(l)
+        }
       }
       else
       {
