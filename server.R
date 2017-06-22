@@ -41,7 +41,7 @@ Redimensioner_pkop <- function(ph, mh, mw, from, to, what)
   nOP <- nrow(ph[which(as.Date(ph$date) >= from & as.Date(ph$date) <= to & ph$`PK.OP` == "OP"),])
   nPK <- nrow(ph[which(as.Date(ph$date) >= from & as.Date(ph$date) <= to & ph$`PK.OP` == "PK"),])
   rOP <- which(as.Date(ph$date) >= from & as.Date(ph$date) <= to & ph$`PK.OP` == "OP")
-  rPK <- which(as.Date(ph$date) >= from & as.Date(ph$date) <= to & ph$`PK.OP` == "PK")
+  rPK <- which(as.Date(ph$date) >= from & as.Date(ph$date) <= to & (ph$`PK.OP` == "PK" | ph$`PK.OP` == "P"))
   M <- nOP + nPK
   
   periodpk <- ph[rPK,]
@@ -76,6 +76,7 @@ Redimensioner_pkop <- function(ph, mh, mw, from, to, what)
     pbop <- ifelse(length(periodop$pun[periodop$real == 1]) > 0, (1/nOP)*sum(periodop$pun[periodop$real == 1]), 0)
     pihatpk <- (pkm - pbpk)/((1/nPK)*sum(periodpk$pun[periodpk$real == 0]))
     pihatop <- (mw - pbop)/((1/nOP)*sum(periodop$pun[periodop$real == 0]))
+    
     for(i in 1:length(rPK))
     {
       ph[rPK[i], "pun"] <- pihatpk * unlist(ph[rPK[i], "pun"])
@@ -379,6 +380,35 @@ TFileReader <- function()
               }
               
             }
+            #### NEW INSERT ##### 2017-06-22
+            else if(!(paste0(Q[2],"_",y) %in% d_f$period) & (paste0(Q[3],"_",y) %in% d_f$period))
+            {
+              ind2 <- which(d_f$period == paste0(Q[3],"_",y))
+              start2 <- paste0("20",y,"-",Qnm[3], "-01")
+              end2 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
+              d.f2 <- data.frame(inizio = start2, fine = end2, BSL = d_f$BSL[ind2], PK = d_f$PK[ind2], stringsAsFactors = FALSE) 
+              bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
+              pQ <- d_f$PK[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
+              missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]] - d_f$BSL[ind2]*ore7$BSL[Qn[3]])/ore7$BSL[Qn[2]]
+              missing_p <- (pQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]] - d_f$PK[ind2]*ore7$PK[Qn[3]])/ore7$PK[Qn[2]]
+              start3 <- paste0("20",y,"-",Qnm[2], "-01")
+              end3 <- paste0("20",y,"-",Qnm[2], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
+              d.f3 <- data.frame(inizio = start3, fine = end3, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE) 
+              
+              #d.f <- rbind(d.f, d.f3)
+              if(!(start2 %in% DF$inizio))
+              {
+                l <- list(DF, d.f2)
+                DF <- rbindlist(l)
+              }
+              if(!(start3 %in% DF$inizio))
+              {
+                l <- list(DF, d.f3)
+                DF <- rbindlist(l)
+              }
+              
+            }
+            
             else
             {
               bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
@@ -503,6 +533,36 @@ TFileReader <- function()
             DF <- rbindlist(l)
           }
         }
+        #### NEW INSERT ##### 2017-06-22
+        else if(!(paste0(Q[2],"_",y) %in% d_f$period) & (paste0(Q[3],"_",y) %in% d_f$period))
+        {
+          ind2 <- which(d_f$period == paste0(Q[3],"_",y))
+          start2 <- paste0("20",y,"-",Qnm[3], "-01")
+          end2 <- paste0("20",y,"-",Qnm[3], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
+          d.f2 <- data.frame(inizio = start2, fine = end2, BSL = d_f$BSL[ind2], PK = d_f$PK[ind2], stringsAsFactors = FALSE) 
+          bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
+          pQ <- d_f$PK[which(d_f$period == paste0(GetQ(which(mesi == mm)), "_",y))]
+          missing_b <- (bQ*sum(ore7$BSL[Qn[1]:Qn[3]]) -  d_f$BSL[i]*ore7$BSL[Qn[1]] - d_f$BSL[ind2]*ore7$BSL[Qn[3]])/ore7$BSL[Qn[2]]
+          missing_p <- (pQ*sum(ore7$PK[Qn[1]:Qn[3]]) -  d_f$PK[i]*ore7$PK[Qn[1]] - d_f$PK[ind2]*ore7$PK[Qn[3]])/ore7$PK[Qn[2]]
+          start3 <- paste0("20",y,"-",Qnm[2], "-01")
+          end3 <- paste0("20",y,"-",Qnm[2], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
+          d.f3 <- data.frame(inizio = start3, fine = end3, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE) 
+          
+          #d.f <- rbind(d.f, d.f3)
+          if(!(start2 %in% DF$inizio))
+          {
+            l <- list(DF, d.f2)
+            DF <- rbindlist(l)
+          }
+          if(!(start3 %in% DF$inizio))
+          {
+            l <- list(DF, d.f3)
+            DF <- rbindlist(l)
+          }
+          
+        }
+        
+        
         else
         {
           bQ <- d_f$BSL[which(d_f$period == paste0(GetQ(Qn[1]), "_",y))]
@@ -598,7 +658,7 @@ df8 <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/pun_forward_201
 mercato <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/prova.xlsx'))
 
 mercato_Tecla <- TFileReader()
-# Define server logic required to plot various variables against mpg
+# 
 shinyServer(function(input, output) {
   
   ### variable definition was outside of this function
