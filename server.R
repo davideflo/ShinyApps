@@ -227,7 +227,7 @@ TFileReader <- function()
   ore7 <- read_excel("C:/Users/utente/Documents/shinyapp/sudd_ore_anno.xlsx", sheet = '2017')
   ore8 <- read_excel("C:/Users/utente/Documents/shinyapp/sudd_ore_anno.xlsx", sheet = '2018')
   
-  files<- list.files("C:/Users/utente/Documents/shinyapp")
+  files <- list.files("C:/Users/utente/Documents/shinyapp")
   fq <- grep('mercato', files, value=TRUE)
   df <- read_excel(paste0("C:/Users/utente/Documents/shinyapp/", fq), skip = 3)
   df <- df[,1:7]
@@ -284,7 +284,7 @@ TFileReader <- function()
   Q4nm <- c("10","11","12")
   
   DF <- data_frame()
-  DF <- bind_rows(DF, data.frame(inizio = '2016-01-01', fine = '2016-01-31', BSL = 0, PK = 0))
+  DF <- bind_rows(DF, data.frame(inizio = '2016-01-01', fine = '2016-01-31', BSL = 0, PK = 0, stringsAsFactors = FALSE))
   for(i in 1:nrow(d_f))
   {
     if(!(strsplit(d_f$period[i], "_")[[1]][1] %in% mesi) & !(strsplit(d_f$period[i], "_")[[1]][1] %in% c("Q1","Q2","Q3","Q4")) & strsplit(d_f$period[i], "_")[[1]][1] != "Y")
@@ -641,7 +641,7 @@ TFileReader <- function()
       }
       else
       {
-        d.f <- data.frame(inizio = '2018-01-01', '2018-12-31' = end, BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
+        d.f <- data.frame(inizio = '2018-01-01', fine = '2018-12-31', BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
         l <- list(DF, d.f)
         DF <- rbindlist(l)
       }
