@@ -233,6 +233,7 @@ TFileReader <- function()
   df <- df[,1:7]
   colnames(df) <- c("Period","Base.1","Peak.1","OffPeak.1","Base.2","Peak.2","OffPeak.2")
   df[is.na(df)] <- 0
+  if(df$Period[1] == "Week") df <- df[2:nrow(df),]
   d_f <- data_frame()
   for( i in 1:nrow(df))
   {
@@ -264,6 +265,8 @@ TFileReader <- function()
       next
     }
   }
+  d_f$BSL <- as.numeric(d_f$BSL)
+  d_f$PK <- as.numeric(d_f$PK)
   ##### compute the missing values #####
   usageQ7 <- c(0,0,0,0)
   usageQ8 <- c(0,0,0,0)
@@ -623,6 +626,23 @@ TFileReader <- function()
     {
       if(sum(usageQ8) > 0)
       {
+        used <- paste0("Q", which(usageQ8 == 1))
+        not_used <- setdiff(c("Q1","Q2","Q3","Q4"), used)
+        month_taken <- c()
+        diff <- 0
+        diffPK <- 0
+        for(i in 1:4)
+        {
+          if(usageQ8[i] == 1)
+          {
+            month_taken <- c(month_taken, get(paste0("Q", i,"n")))
+            diff <- diff + sum(d_f$BSL[which(d_f$period %in% paste0(c("Q1","Q2","Q3","Q4")[i],"_",y))] * ore7$BSL[get(paste0("Q", i,"n"))])
+            diffPK <- diffPK + sum(d_f$PK[which(d_f$period %in% paste0(c("Q1","Q2","Q3","Q4")[i],"_",y))] * ore7$PK[get(paste0("Q", i,"n"))])
+          }
+        }
+        sum_missingQ_BSL <- (d_f$BSL[i]*sum(ore7$BSL) - diff)/sum(ore7$BSL[setdiff(1:12, month_taken)])
+        sum_missingQ_PK <- (d_f$PK[i]*sum(ore7$PK) - diffPK)/sum(ore7$PK[setdiff(1:12, month_taken)])
+
         p <- max(which(usageQ8 == 1))
         Qp <- paste0("Q",1:p)
         Q <- get(paste0("Q", min(which(usageQ8 == 0))))
@@ -630,9 +650,7 @@ TFileReader <- function()
         Qnm <- get(paste0("Q", min(which(usageQ8 == 0)),"nm"))
         start <- paste0("2018-",Qnm[1], "-01")
         end <- '2018-12-31'
-        missing_b <- (d_f$BSL[i]*sum(ore7$BSL) - sum(d_f$BSL[which(d_f$period %in% paste0(Qp,"_",y))])*sum(ore7$BSL[1:(Qn[1]-1)]))/sum(ore7$BSL[Qn[1]:12])
-        missing_p <- (d_f$PK[i]*sum(ore7$PK) - sum(d_f$PK[which(d_f$period %in% paste0(Qp,"_",y))])*sum(ore7$PK[1:(Qn[1]-1)]))/sum(ore7$PK[Qn[1]:12])
-        d.f <- data.frame(inizio = start, fine = end, BSL = missing_b, PK = missing_p, stringsAsFactors = FALSE)
+        d.f <- data.frame(inizio = start, fine = end, BSL = sum_missingQ_BSL, PK = sum_missingQ_PK, stringsAsFactors = FALSE)
         if(!(start %in% DF$inizio))
         {
           l <- list(DF, d.f)
@@ -653,7 +671,7 @@ TFileReader <- function()
 
 #list_orep <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/longterm_pun.xlsx'))
 list_orep <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/longterm_pun.xlsx'))
-real <- read_excel("C:/Users/utente/Documents/shinyapp/DB_Borse_Elettriche_PER MI_17_conMacro - Copy.xlsm", sheet = 2)
+real <- read_excel("C:/Users/utente/Documents/shinyapp/DB_Borse_Elettriche_PER MI_17_conMacro_072017.xlsm", sheet = 2)
 df2 <- list_orep
 
 df2 <- Assembler2(real, df2)
@@ -662,7 +680,7 @@ colnames(df2)[10] <- "real"
 
 df8 <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/pun_forward_2018.xlsx'))
 
-mercato <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/prova.xlsx'))
+mercato <- data.table(read_excel('C:/Users/utente/Documents/shinyapp/2017.11.06_mercato.xlsx'))
 
 mercato_Tecla <- TFileReader()
 # 
