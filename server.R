@@ -115,12 +115,16 @@ WeekRedimensioner <- function(ph, mh, from, to)
   return(ph)
 }
 ###################################################################
-AnalyzePeriod <- function(s)
+AnalyzePeriod <- function(s, y1, y2)
+  #### @PARAM: y1 and y2 are the two consecutive years of which we need to compute the quoting
 {
-  mesi17 <- c("Gennaio_17", "Febbraio_17", "Marzo_17", "Aprile_17", "Maggio_16", "Giugno_17", 
-              "Luglio_17", "Agosto_17", "Settembre_17", "Ottobre_17", "Novembre_17", "Dicembre_17")
-  mesi18 <- c("Gennaio_18", "Febbraio_18", "Marzo_18", "Aprile_18", "Maggio_18", "Giugno_18", 
-              "Luglio_18", "Agosto_18", "Settembre_18", "Ottobre_18", "Novembre_18", "Dicembre_18")
+  sy1 <- y1 - 2000
+  sy2 <- y2 - 2000
+  mesi <- c("Gennaio_", "Febbraio_", "Marzo_", "Aprile_", "Maggio_", "Giugno_", 
+            "Luglio_", "Agosto_", "Settembre_", "Ottobre_", "Novembre_", "Dicembre_")
+  
+  mesi17 <- paste0(mesi, sy1)
+  mesi18 <- paste0(mesi, sy2)
   
   splitted <- strsplit(s, "-")
   YEAR <- 0
@@ -138,68 +142,69 @@ AnalyzePeriod <- function(s)
   {
     if(tolower(s) %in% tolower(mesi17))
     {
-      YEAR <- 2017
+      YEAR <- y1
       mese <- ifelse(which(tolower(s) == tolower(mesi17)) < 10, paste0('0',which(tolower(s) == tolower(mesi17))), which(tolower(s) == tolower(mesi17)))
       from <- paste0(YEAR, '-', mese, '-01')
       to <- paste0(YEAR, '-', mese, '-', days_in_month(as.Date(from)))
     }
     else if(tolower(s) %in% tolower(mesi18))
     {
-      YEAR <- 2018
+      YEAR <- y2
       mese <- ifelse(which(tolower(s) == tolower(mesi18)) < 10, paste0('0',which(tolower(s) == tolower(mesi18))), which(tolower(s) == tolower(mesi18)))
       from <- paste0(YEAR, '-', mese, '-01')
       to <- paste0(YEAR, '-', mese, '-', days_in_month(as.Date(from)))
     }
-    else if(s == 'Q1_17')
+    else if(s == paste0('Q1_',sy1))
     {
-      YEAR <- 2017
-      from <- '2017-01-01'
-      to <- '2017-03-31'
+      YEAR <- y1
+      from <- paste0(YEAR,'-01-01')
+      to <- paste0(YEAR,'-03-31')
     }
-    else if(s == 'Q2_17')
+    else if(s == paste0('Q2_',sy1))
     {
-      YEAR <- 2017
-      from <- '2017-04-01'
-      to <- '2017-06-30'
+      YEAR <- y1
+      from <- paste0(YEAR,'-04-01')
+      to <- paste0(YEAR,'-06-30')
     }
-    else if(s == 'Q3_17')
+    else if(s == paste0('Q3_',sy1))
     {
-      YEAR <- 2017
-      from <- '2017-07-01'
-      to <- '2017-09-30'
+      YEAR <- y1
+      from <- paste0(YEAR,'-07-01')
+      to <- paste0(YEAR,'-09-30')
     }
-    else if(s == 'Q4_17')
+    else if(s == paste0('Q4_',sy1))
     {
-      YEAR <- 2017
-      from <- '2017-10-01'
-      to <- '2017-12-31'
+      YEAR <- y1
+      from <- paste0(YEAR,'-10-01')
+      to <- paste0(YEAR,'-12-31')
     }
-    else if(s == 'Q1_18')
+    else if(s == paste0('Q1_',sy2))
     {
-      from <- '2018-01-01'
-      to <- '2018-03-31'
+      YEAR <- y2
+      from <- paste0(YEAR,'-01-01')
+      to <- paste0(YEAR,'-03-31')
     }
-    else if(s == 'Q2_18')
+    else if(s == paste0('Q2_',sy2))
     {
-      YEAR <- 2018
-      from <- '2018-04-01'
-      to <- '2018-06-30'
+      YEAR <- y2
+      from <- paste0(YEAR,'-04-01')
+      to <- paste0(YEAR,'-06-30')
     }
-    else if(s == 'Q3_18')
+    else if(s == paste0('Q3_',sy2))
     {
-      YEAR <- 2018
-      from <- '2018-07-01'
-      to <- '2018-09-30'
+      YEAR <- y2
+      from <- paste0(YEAR,'-07-01')
+      to <- paste0(YEAR,'-09-30')
     }
-    else if(s == 'Q4_18')
+    else if(s == paste0('Q4_',sy2))
     {
-      YEAR <- 2018
-      from <- '2018-10-01'
-      to <- '2018-12-31'
+      YEAR <- y2
+      from <- paste0(YEAR,'-10-01')
+      to <- paste0(YEAR,'-12-31')
     }
     else
     {### BSL annuale
-      YEAR <- 2018
+      YEAR <- y2
       from <- paste0(YEAR, '-01-01')
       to <- paste0(YEAR, '-12-31')
     }
@@ -684,6 +689,8 @@ shinyServer(function(input, output) {
   output$oldpun7 <- renderText({print(paste("BASELOAD 2017 attuale =",round(m_old,2)))})
   output$oldpun8 <- renderText({print(paste("BASELOAD 2018 attuale =",round(m_old8,2)))})
   
+  y1 <- 2017; y2 <- 2018
+  
   reactive({
   if(input$select == 1)
   {
@@ -694,16 +701,16 @@ shinyServer(function(input, output) {
         for(i in 1:nrow(mercato))
         {
           #print(i)
-          ft <- AnalyzePeriod(unlist(mercato[i,"Periodo"]))
+          ft <- AnalyzePeriod(unlist(mercato[i,"Periodo"]), y1, y2)
           from <- ft$from
           to <- ft$to
           #print(EstraiAnno(from))
           
-          if(EstraiAnno(from) == 2017 & EstraiAnno(to) == 2017)
+          if(EstraiAnno(from) == y1 & EstraiAnno(to) == y1)
           {
             df2 <- Redimensioner_pkop(df2, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
           }
-          else if(EstraiAnno(from) == 2018 & EstraiAnno(to) == 2018)
+          else if(EstraiAnno(from) == y2 & EstraiAnno(to) == y2)
           {
             df8 <- Redimensioner_pkop(df8, unlist(mercato[i,"BSL"]), unlist(mercato[i,"PK"]), from, to, "PK")
           }
@@ -733,11 +740,11 @@ shinyServer(function(input, output) {
         {
           from <- as.character(mercato_Tecla$inizio[i])
           to <- as.character(mercato_Tecla$fine[i])
-          if(EstraiAnno(from) == 2017 & EstraiAnno(to) == 2017)
+          if(EstraiAnno(from) == y1 & EstraiAnno(to) == y1)
           {
             df2 <- Redimensioner_pkop(df2, mercato_Tecla$BSL[i], mercato_Tecla$PK[i], from, to, "PK")
           }
-          else if(EstraiAnno(from) == 2018 & EstraiAnno(to) == 2018)
+          else if(EstraiAnno(from) == y2 & EstraiAnno(to) == y2)
           {
             df8 <- Redimensioner_pkop(df8, mercato_Tecla$BSL[i], mercato_Tecla$PK[i], from, to, "PK")
           }
@@ -767,8 +774,8 @@ shinyServer(function(input, output) {
     plot(df2$pun, 
          col = 'blue',
          type = "l",
-         ylab = "pun 2017",
-         main = 'PUN forward 2017')
+         ylab = paste("pun",y1),
+         main = paste('PUN forward',y1))
   })
   
   output$newpun8 <- renderText({print(paste("BASELOAD 2018 aggiornato =",m8new))})
@@ -776,18 +783,18 @@ shinyServer(function(input, output) {
     plot(df8$pun, 
          col = "red",
          type = "l",
-         ylab = "pun 2018",
-         main = 'PUN forward 2018')
+         ylab = paste("pun",y2),
+         main = paste('PUN forward',y2))
   })
   
   #hide(id = "old_stats", anim = TRUE, animType = "fade")  
-  path7 <- "C:/Users/utente/Documents/prova/longterm_pun.xlsx"   
-  path8 <- "C:/Users/utente/Documents/prova/pun_forward_2018.xlsx"  
+  path7 <- paste0("C:/Users/utente/Documents/prova/pun_forward_",y1, ".xlsx")   
+  path8 <- paste0("C:/Users/utente/Documents/prova/pun_forward_",y2, ".xlsx")   
   
   write.xlsx(df2, path7, row.names = FALSE)
   write.xlsx(df8, path8, row.names = FALSE)
   
-  output$mess7 <- renderText({print(paste("PUN forward 2017 salvato in", path7))})
-  output$mess8 <- renderText({print(paste("PUN forward 2018 salvato in", path8))})
+  output$mess7 <- renderText({print(paste("PUN forward anno corrente salvato in", path7))})
+  output$mess8 <- renderText({print(paste("PUN forward prossimo anno salvato in", path8))})
   
 })
