@@ -419,6 +419,7 @@ TFileReader <- function(y1, y2)
   DF <- bind_rows(DF, data.frame(inizio = '2016-01-01', fine = '2016-01-31', BSL = 0, PK = 0, stringsAsFactors = FALSE))
   for(i in 1:nrow(d_f))
   {
+    #print(i)
     if(!(strsplit(d_f$period[i], "_")[[1]][1] %in% mesi) & !(strsplit(d_f$period[i], "_")[[1]][1] %in% c("Q1","Q2","Q3","Q4")) & strsplit(d_f$period[i], "_")[[1]][1] != "Y")
     {
       split1 <- gsub(" ", "", strsplit(d_f$period[i], "-")[[1]][1], fixed = TRUE)
@@ -480,7 +481,7 @@ TFileReader <- function(y1, y2)
             DF <- MissingValues3(d_f, DF, Q, Qn, Qnm, y, ore8, mm, i)
           }
           
-          else
+          else if(paste0(Qn[3]/3,"_",y) %in% d_f$period)
           {
             DF <- MissingValues4(d_f, DF, Q, Qn, Qnm, y, ore8, mm, i)
           }
@@ -622,44 +623,77 @@ TFileReader <- function(y1, y2)
     {
       if(sum(usageQ8) > 0)
       {
-        used <- paste0("Q", which(usageQ8 == 1))
-        not_used <- setdiff(c("Q1","Q2","Q3","Q4"), used)
-        month_taken <- c()
-        diff <- 0
-        diffPK <- 0
-        for(i in 1:4)
+        if(paste0("Q1_",y) %in% d_f$period | paste0("Q2_",y) %in% d_f$period | paste0("Q3_",y) %in% d_f$period | paste0("Q4_",y) %in% d_f$period)
         {
-          if(usageQ8[i] == 1)
+          used <- paste0("Q", which(usageQ8 == 1))
+          not_used <- setdiff(c("Q1","Q2","Q3","Q4"), used)
+          month_taken <- c()
+          diff <- 0
+          diffPK <- 0
+          for(j in 1:4)
           {
-            month_taken <- c(month_taken, get(paste0("Q", i,"n")))
-            diff <- diff + sum(d_f$BSL[which(d_f$period %in% paste0(c("Q1","Q2","Q3","Q4")[i],"_",y))] * ore8$BSL[get(paste0("Q", i,"n"))])
-            diffPK <- diffPK + sum(d_f$PK[which(d_f$period %in% paste0(c("Q1","Q2","Q3","Q4")[i],"_",y))] * ore8$PK[get(paste0("Q", i,"n"))])
+            if(usageQ8[j] == 1)
+            {
+              month_taken <- c(month_taken, get(paste0("Q", j,"n")))
+              diff <- diff + sum(d_f$BSL[which(d_f$period %in% paste0(c("Q1","Q2","Q3","Q4")[j],"_",y))] * ore8$BSL[get(paste0("Q", j,"n"))])
+              diffPK <- diffPK + sum(d_f$PK[which(d_f$period %in% paste0(c("Q1","Q2","Q3","Q4")[j],"_",y))] * ore8$PK[get(paste0("Q", j,"n"))])
+            }
+          }
+          sum_missingQ_BSL <- (d_f$BSL[i]*sum(ore8$BSL) - diff)/sum(ore8$BSL[setdiff(1:12, month_taken)])
+          sum_missingQ_PK <- (d_f$PK[i]*sum(ore8$PK) - diffPK)/sum(ore8$PK[setdiff(1:12, month_taken)])
+          
+          p <- max(which(usageQ8 == 1))
+          Qp <- paste0("Q",1:p)
+          Q <- get(paste0("Q", min(which(usageQ8 == 0))))
+          Qn <- get(paste0("Q", min(which(usageQ8 == 0)),"n"))
+          Qnm <- get(paste0("Q", min(which(usageQ8 == 0)),"nm"))
+          start <- paste0("2018-",Qnm[1], "-01")
+          end <- '2018-12-31'
+          d.f <- data.frame(inizio = start, fine = end, BSL = sum_missingQ_BSL, PK = sum_missingQ_PK, stringsAsFactors = FALSE)
+          if(!(start %in% DF$inizio))
+          {
+            l <- list(DF, d.f)
+            DF <- rbindlist(l)
           }
         }
-        sum_missingQ_BSL <- (d_f$BSL[i]*sum(ore8$BSL) - diff)/sum(ore8$BSL[setdiff(1:12, month_taken)])
-        sum_missingQ_PK <- (d_f$PK[i]*sum(ore8$PK) - diffPK)/sum(ore8$PK[setdiff(1:12, month_taken)])
-
-        p <- max(which(usageQ8 == 1))
-        Qp <- paste0("Q",1:p)
-        Q <- get(paste0("Q", min(which(usageQ8 == 0))))
-        Qn <- get(paste0("Q", min(which(usageQ8 == 0)),"n"))
-        Qnm <- get(paste0("Q", min(which(usageQ8 == 0)),"nm"))
-        start <- paste0("2018-",Qnm[1], "-01")
-        end <- '2018-12-31'
-        d.f <- data.frame(inizio = start, fine = end, BSL = sum_missingQ_BSL, PK = sum_missingQ_PK, stringsAsFactors = FALSE)
-        if(!(start %in% DF$inizio))
+        else
         {
-          l <- list(DF, d.f)
-          DF <- rbindlist(l)
+          month_taken <- c()
+          diff <- 0
+          diffPK <- 0
+          for(j in 1:12)
+          {
+            if(paste0(mesi[j],"_",y) %in% d_f$period)
+            {
+              month_taken <- c(month_taken, j)
+              diff <- diff + sum(d_f$BSL[which(d_f$period %in% paste0(mesi[j],"_",y))] * ore8$BSL[j])
+              diffPK <- diffPK + sum(d_f$PK[which(d_f$period %in% paste0(mesi[j],"_",y))] * ore8$PK[j])
+            }
+          }
+            
+            sum_missingQ_BSL <- (d_f$BSL[i]*sum(ore8$BSL) - diff)/sum(ore8$BSL[setdiff(1:12, month_taken)])
+            sum_missingQ_PK <- (d_f$PK[i]*sum(ore8$PK) - diffPK)/sum(ore8$PK[setdiff(1:12, month_taken)])
+            
+            p <- max(month_taken) + 1
+            np <- ifelse(p < 10, paste0("0",p), p)
+            
+            start <- paste0("2018-",np, "-01")
+            end <- '2018-12-31'
+            d.f <- data.frame(inizio = start, fine = end, BSL = sum_missingQ_BSL, PK = sum_missingQ_PK, stringsAsFactors = FALSE)
+            if(!(start %in% DF$inizio))
+            {
+              l <- list(DF, d.f)
+              DF <- rbindlist(l)
+            }
         }
       }
+    }
       else
       {
         d.f <- data.frame(inizio = '2018-01-01', fine = '2018-12-31', BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
         l <- list(DF, d.f)
         DF <- rbindlist(l)
       }
-    }
   }
   return(DF[2:nrow(DF)])
 }
