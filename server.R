@@ -358,7 +358,7 @@ TFileReader <- function(y1, y2)
   
   files <- list.files("C:/Users/utente/Documents/shinyapp")
   fq <- grep('mercato', files, value=TRUE)
-  df <- read_excel(paste0("C:/Users/utente/Documents/shinyapp/", fq), skip = 3)
+  df <- read_excel(paste0("C:/Users/utente/Documents/shinyapp/", fq), skip = 4)
   df <- df[,1:7]
   colnames(df) <- c("Period","Base.1","Peak.1","OffPeak.1","Base.2","Peak.2","OffPeak.2")
   df[is.na(df)] <- 0
@@ -444,14 +444,23 @@ TFileReader <- function(y1, y2)
     {
         mm <- strsplit(d_f$period[i], "_")[[1]][1]
         y <- strsplit(d_f$period[i], "_")[[1]][2]
-        m <- lubridate::month(Sys.Date())
+        m <- ifelse(lubridate::month(Sys.Date()) == y1, lubridate::month(Sys.Date()), which(mesi == strsplit(d_f$period[i], "_")[[1]][1]))
         Q <- get(GetQ(which(mesi == mm)))
         Qn <- get(paste0(GetQ(which(mesi == mm)), "n"))
         Qnm <- get(paste0(GetQ(which(mesi == mm)), "nm"))
         
-        if(y == "17")
+        if(y == as.character(sy1))
         {
           usageQ7[Qn[3]/3] <- 1
+          ind <- which(d_f$period == paste0(Q[1],"_",y))
+          start <- paste0("20",y,"-",Qnm[1], "-01")
+          end <- paste0("20",y,"-",Qnm[1], "-", lubridate::days_in_month(as.Date(start, origin = "1899-12-30")))
+          d.f <- data.frame(inizio = start, fine = end, BSL = d_f$BSL[ind], PK = d_f$PK[ind], stringsAsFactors = FALSE) 
+          if(!(start %in% DF$inizio))
+          {
+            l <- list(DF, d.f)
+            DF <- rbindlist(l)
+          }
         }
         else
         {
@@ -623,9 +632,9 @@ TFileReader <- function(y1, y2)
     {
       usage <- c() 
         if(strsplit(d_f$period[i], "_")[[1]][2] == as.character(sy1))
-          {usage <- usageQ7}
+        {usage <- usageQ7}
       else
-        {usage <- usageQ8}
+        {y <- strsplit(d_f$period[i], "_")[[1]][2]; usage <- usageQ8}
       
       ore <- c()
       if(strsplit(d_f$period[i], "_")[[1]][2] == as.character(sy1))
@@ -659,8 +668,8 @@ TFileReader <- function(y1, y2)
           Q <- get(paste0("Q", min(which(usage == 0))))
           Qn <- get(paste0("Q", min(which(usage == 0)),"n"))
           Qnm <- get(paste0("Q", min(which(usage == 0)),"nm"))
-          start <- paste0("2018-",Qnm[1], "-01")
-          end <- '2018-12-31'
+          start <- paste0((as.numeric(y) + 2000),"-",Qnm[1], "-01")
+          end <- paste0((as.numeric(y) + 2000),'-12-31')
           d.f <- data.frame(inizio = start, fine = end, BSL = sum_missingQ_BSL, PK = sum_missingQ_PK, stringsAsFactors = FALSE)
           if(!(start %in% DF$inizio))
           {
@@ -689,8 +698,8 @@ TFileReader <- function(y1, y2)
             p <- max(month_taken) + 1
             np <- ifelse(p < 10, paste0("0",p), p)
             
-            start <- paste0("2018-",np, "-01")
-            end <- '2018-12-31'
+            start <- paste0((as.numeric(y) + 2000),"-",np, "-01")
+            end <- paste0((as.numeric(y) + 2000),'-12-31')
             d.f <- data.frame(inizio = start, fine = end, BSL = sum_missingQ_BSL, PK = sum_missingQ_PK, stringsAsFactors = FALSE)
             if(!(start %in% DF$inizio))
             {
@@ -699,13 +708,14 @@ TFileReader <- function(y1, y2)
             }
         }
       }
-    }
+    ## tolta graffa da qui
       else
       {
-        d.f <- data.frame(inizio = '2018-01-01', fine = '2018-12-31', BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
+        d.f <- data.frame(inizio = paste0((as.numeric(y) + 2000),'-01-01'), fine = paste0((as.numeric(y) + 2000),'-12-31'), BSL = d_f$BSL[i], PK = d_f$PK[i], stringsAsFactors = FALSE)
         l <- list(DF, d.f)
         DF <- rbindlist(l)
       }
+    } ### messa qui
   }
   return(DF[2:nrow(DF)])
 }
